@@ -1,0 +1,96 @@
+# ======================
+# Environment / Secrets
+# ======================
+.env
+.env.test
+
+# ======================
+# Data / Volumes (block all runtime DBs, caches, and mounts)
+# ======================
+volumes/
+shared/
+shared-backup/
+neo4j/
+supabase/docker/volumes/
+supabase/db/
+supabase/storage/
+supabase/pooler/
+supabase/analytics/
+supabase/realtime/
+supabase/imgproxy/
+supabase/kong/
+supabase/rest/
+supabase/studio/
+supabase/meta/
+supabase/auth/
+supabase/vector/
+supabase/functions/
+langfuse_postgres_data/
+langfuse_clickhouse_data/
+langfuse_minio_data/
+qdrant_storage/
+portainer_data/
+netdataconfig/
+netdatalib/
+netdatacache/
+comfyui-docker_scripts/
+comfyui-docker_config/
+comfyui-docker_comfyui-user/
+comfyui-docker_comfyui-output/
+comfyui-docker_comfyui-models/
+searxng-cache/
+
+# ======================
+# Service Configs
+# ======================
+searxng/settings.yml
+searxng/uwsgi*
+
+# ======================
+# Python / Temp
+# ======================
+__pycache__/
+*.pyc
+*.pyo
+*.tmp
+
+# ======================
+# Logs
+# ======================
+*.log
+logs/
+
+# ======================
+# Docker Junk
+# ======================
+*.pid
+*.sock
+
+# ======================
+# Backup / Old Files
+# ======================
+*.bak
+*.old
+
+# ======================
+# OS-specific
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# Optional: AI / Model Files (very large, don't commit)
+*.ckpt
+*.safetensors
+*.onnx
+*.bin
+
+# ======================
+# Optional: Node/JS builds
+node_modules/
+dist/
+build/
+
+# ======================
+# Local Docker overrides
+docker-compose.override.yml
