@@ -1,12 +1,13 @@
-# docker-compose.override.public.comfyui.yml
+# docker-compose.override.private.comfyui.yml
 version: "3.9"
 
 services:
   comfyui-docker:
     container_name: comfyui-docker
     restart: unless-stopped
+    # Notice: no 127.0.0.1 restriction here (accessible within your stack / Cloudflare tunnel)
     ports:
-      - "127.0.0.1:8188:8188" # Web UI
+      - "8188:8188" # Web UI
     environment:
       - INIT_NODE=${INIT_NODE}
       - UPDATE_NODE=${UPDATE_NODE}
