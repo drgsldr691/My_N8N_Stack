@@ -263,9 +263,6 @@ def main():
     print("Waiting for ComfyUI to initialize...")
     time.sleep(5)
 
-    # Fix ComfyUI torchvision bug
-    fix_comfyui_torchvision()
-
     # Start local AI services
     start_local_ai(args.profile, args.environment)
 
