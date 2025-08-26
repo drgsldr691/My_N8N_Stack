@@ -1,0 +1,30 @@
+# docker-compose.override.public.comfyui.yml
+version: "3.9"
+
+services:
+  comfyui-docker:
+    container_name: comfyui-docker
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8188:8188" # Web UI
+    environment:
+      - INIT_NODE=${INIT_NODE}
+      - UPDATE_NODE=${UPDATE_NODE}
+      - INIT_MODEL=${INIT_MODEL}
+      - BOOT_CONFIG_INCLUDE=${BOOT_CONFIG_INCLUDE}
+      - BOOT_CONFIG_EXCLUDE=${BOOT_CONFIG_EXCLUDE}
+      - COMFYUI_EXTRA_ARGS=${COMFYUI_EXTRA_ARGS}
+      - HF_API_TOKEN=${HF_API_TOKEN}
+      - CIVITAI_API_TOKEN=${CIVITAI_API_TOKEN}
+      - CN_NETWORK=${CN_NETWORK}
+      - LOG_LEVEL=${LOG_LEVEL}
+    volumes:
+      - ./comfyui/models:/workspace/ComfyUI/models
+      - ./comfyui/output:/workspace/ComfyUI/output
+      - ./comfyui/input:/workspace/ComfyUI/input
+      - ./comfyui/user:/workspace/ComfyUI/user
+    command: >
+      sh -c "
+        pip install --no-cache-dir --upgrade torch==2.4.0 torchvision==0.19.0 &&
+        python main.py --listen 0.0.0.0 --port 8188 ${COMFYUI_EXTRA_ARGS}
+      "
