@@ -89,14 +89,15 @@ def prepare_comfyui_env():
     print("Copying .env in root to comfyui/.env...")
     shutil.copyfile(env_example_path, env_path)
 
-def start_comfyui(environment=None):
+def start_comfyui():
     """Start ComfyUI services."""
     print("Starting ComfyUI services...")
-    cmd = ["docker", "compose", "-p", "my_n8n_stack", "-f", "comfyui/docker-compose.yml"]
-    if environment and environment == "private":
-        cmd.extend(["-f", "docker-compose.override.private.comfyui.yml"])
-    if environment and environment == "public":
-        cmd.extend(["-f", "docker-compose.override.public.comfyui.yml"])
+    cmd = [
+        "docker", "compose",
+        "-p", "my_n8n_stack",
+        "-f", "comfyui/docker-compose.yml",
+        "-f", "docker-compose.override.public.comfyui.yml"  # Always include override
+    ]
     cmd.extend(["up", "-d"])
     run_command(cmd)
 
