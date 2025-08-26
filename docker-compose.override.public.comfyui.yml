@@ -25,12 +25,12 @@ services:
 
     command: >
       bash -c "
-        pip install --no-cache-dir --force-reinstall \
-          torch==2.8.0+cu128 \
-          torchvision==0.23.0+cu128 \
-          torchaudio==2.8.0+cu128 \
-          xformers==0.0.32.post2 \
-          -f https://download.pytorch.org/whl/torch_stable.html &&
-        pip install --no-cache-dir piexif soundfile &&
+        pip install \
+        torch==2.8.0+cu128 \
+        torchvision==0.23.0+cu128 \
+        torchaudio==2.8.0+cu128 \
+        xformers==0.0.32.post2 \
+        -f https://download.pytorch.org/whl/torch_stable.html && \
+        pip install piexif soundfile && \
         python main.py --listen 0.0.0.0 --port 8188
       "
