@@ -73,7 +73,7 @@ def clone_comfyui_repo():
         ])
         os.chdir("comfyui")
         run_command(["git", "sparse-checkout", "init", "--cone"])
-        run_command(["git", "sparse-checkout", "set", "."])  # root files
+        run_command(["git", "sparse-checkout", "set", "docker"])
         run_command(["git", "checkout", "main"])
         os.chdir("..")
     else:
@@ -83,17 +83,30 @@ def clone_comfyui_repo():
         os.chdir("..")
 
 def prepare_comfyui_env():
-    """Copy .env to ComfyUI root (repo expects .env alongside docker-compose.yml)."""
-    env_path = os.path.join("comfyui", ".env")
+    """Copy .env to .env in comfyui/docker."""
+    env_path = os.path.join("comfyui", "docker", ".env")
     env_example_path = os.path.join(".env")
-    print("Copying .env in root to comfyui/.env...")
+    print("Copying .env in root to .env in comfyui/docker...")
     shutil.copyfile(env_example_path, env_path)
 
 def start_comfyui():
     """Start ComfyUI services."""
     print("Starting ComfyUI services...")
-    cmd = ["docker", "compose", "-p", "my_n8n_stack", "-f", "comfyui/docker-compose.yml", "up", "-d"]
+    cmd = ["docker", "compose", "-p", "my_n8n_stack", "-f", "comfyui/docker/docker-compose.yml", "up", "-d"]
     run_command(cmd)
+
+def fix_comfyui_torchvision():
+    """Ensure ComfyUI has compatible torchvision installed."""
+    print("Checking ComfyUI torchvision version...")
+    try:
+        subprocess.run([
+            "docker", "exec", "comfyui-docker",
+            "pip", "install", "--no-cache-dir", "--upgrade",
+            "torchvision==0.19.0"
+        ], check=True)
+        print("✅ Torchvision fixed in ComfyUI container.")
+    except Exception as e:
+        print(f"⚠️ Could not fix torchvision automatically: {e}")
 
 # -------------------------------
 # Local AI + SearXNG
@@ -169,7 +182,49 @@ def check_and_fix_docker_compose_for_searxng():
     if not os.path.exists(docker_compose_path):
         print(f"Warning: Docker Compose file not found at {docker_compose_path}")
         return
-    # (same logic as your original here...)
+
+    try:
+        with open(docker_compose_path, 'r') as file:
+            content = file.read()
+
+        is_first_run = True
+        try:
+            container_check = subprocess.run(
+                ["docker", "ps", "--filter", "name=searxng", "--format", "{{.Names}}"],
+                capture_output=True, text=True, check=True
+            )
+            searxng_containers = container_check.stdout.strip().split('\n')
+            if any(container for container in searxng_containers if container):
+                container_name = next(container for container in searxng_containers if container)
+                print(f"Found running SearXNG container: {container_name}")
+                container_check = subprocess.run(
+                    ["docker", "exec", container_name, "sh", "-c", "[ -f /etc/searxng/uwsgi.ini ] && echo 'found' || echo 'not_found'"],
+                    capture_output=True, text=True, check=False
+                )
+                if "found" in container_check.stdout:
+                    print("Found uwsgi.ini inside the SearXNG container - not first run")
+                    is_first_run = False
+                else:
+                    print("uwsgi.ini not found inside the SearXNG container - first run")
+                    is_first_run = True
+            else:
+                print("No running SearXNG container found - assuming first run")
+        except Exception as e:
+            print(f"Error checking Docker container: {e} - assuming first run")
+
+        if is_first_run and "cap_drop: - ALL" in content:
+            print("First run detected for SearXNG. Temporarily removing 'cap_drop: - ALL' directive...")
+            modified_content = content.replace("cap_drop: - ALL", "# cap_drop: - ALL  # Temporarily commented out for first run")
+            with open(docker_compose_path, 'w') as file:
+                file.write(modified_content)
+        elif not is_first_run and "# cap_drop: - ALL  # Temporarily commented out for first run" in content:
+            print("SearXNG has been initialized. Re-enabling 'cap_drop: - ALL' directive for security...")
+            modified_content = content.replace("# cap_drop: - ALL  # Temporarily commented out for first run", "cap_drop: - ALL")
+            with open(docker_compose_path, 'w') as file:
+                file.write(modified_content)
+
+    except Exception as e:
+        print(f"Error checking/modifying docker-compose.yml for SearXNG: {e}")
 
 # -------------------------------
 # Main
@@ -209,6 +264,9 @@ def main():
     start_comfyui()
     print("Waiting for ComfyUI to initialize...")
     time.sleep(5)
+
+    # Fix ComfyUI torchvision bug
+    fix_comfyui_torchvision()
 
     # Start local AI services
     start_local_ai(args.profile, args.environment)
