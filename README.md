@@ -55,7 +55,7 @@ Unlike cloud-based AI platforms, this stack is **100% private and self-hosted**,
 Clone the repo:
 
 ```bash
-git clone https://github.com/drgsldr691/local-ai-packaged.git
+git clone https://github.com/drgsldr691/My_N8N_Stack.git
 cd local-ai-packaged
 ```
 
@@ -236,3 +236,4 @@ This project builds on the work of:
 
 Extended here with **additional services, workflows, monitoring, and improvements**.  
 Licensed under the **Apache 2.0 License**.
+
