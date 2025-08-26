@@ -89,15 +89,26 @@ def prepare_comfyui_env():
     print("Copying .env in root to comfyui/.env...")
     shutil.copyfile(env_example_path, env_path)
 
-def start_comfyui():
-    """Start ComfyUI services."""
-    print("Starting ComfyUI services...")
-    cmd = [
-        "docker", "compose",
-        "-p", "my_n8n_stack",
-        "-f", "comfyui/docker-compose.yml",
-        "-f", "docker-compose.override.public.comfyui.yml"  # Always include override
-    ]
+def start_local_ai(profile=None, environment=None):
+    """Start the local AI services (using its compose file)."""
+    print("Starting local AI services...")
+    cmd = ["docker", "compose", "-p", "my_n8n_stack"]
+    if profile and profile != "none":
+        cmd.extend(["--profile", profile])
+    cmd.extend(["-f", "docker-compose.yml"])
+    if environment and environment == "private":
+        cmd.extend(["-f", "docker-compose.override.private.yml"])
+    if environment and environment == "public":
+        cmd.extend(["-f", "docker-compose.override.public.yml"])
+        cmd.extend(["-f", "docker-compose.override.public.supabase.yml"])
+        # Include ComfyUI public override if present
+        if os.path.exists("docker-compose.override.public.comfyui.yml"):
+            cmd.extend(["-f", "docker-compose.override.public.comfyui.yml"])
+
+    # Always include comfyui override if present (fallback non-public)
+    if os.path.exists("docker-compose.override.comfyui.yml"):
+        cmd.extend(["-f", "docker-compose.override.comfyui.yml"])
+
     cmd.extend(["up", "-d"])
     run_command(cmd)
 
