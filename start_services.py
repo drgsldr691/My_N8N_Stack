@@ -131,8 +131,15 @@ def start_local_ai(profile=None, environment=None):
         cmd.extend(["-f", "docker-compose.override.private.yml"])
     if environment and environment == "public":
         cmd.extend(["-f", "docker-compose.override.public.yml"])
+        cmd.extend(["-f", "docker-compose.override.public.supabase.yml"])
+
+    # Always include comfyui override if present
+    if os.path.exists("docker-compose.override.comfyui.yml"):
+        cmd.extend(["-f", "docker-compose.override.comfyui.yml"])
+
     cmd.extend(["up", "-d"])
     run_command(cmd)
+
 
 def generate_searxng_secret_key():
     """Generate a secret key for SearXNG based on the current platform."""
