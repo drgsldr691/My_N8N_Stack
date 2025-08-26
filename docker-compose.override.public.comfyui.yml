@@ -22,14 +22,15 @@ services:
       - ./comfyui/output:/workspace/ComfyUI/output
       - ./comfyui/input:/workspace/ComfyUI/input
       - ./comfyui/user:/workspace/ComfyUI/user
+
     command: >
-      sh -c "
-        pip uninstall -y xformers &&
+      bash -c "
         pip install --no-cache-dir --force-reinstall \
-          torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 \
+          torch==2.8.0+cu128 \
+          torchvision==0.23.0+cu128 \
+          torchaudio==2.8.0+cu128 \
+          xformers==0.0.32.post2 \
           -f https://download.pytorch.org/whl/torch_stable.html &&
-        pip install --no-cache-dir --force-reinstall \
-          xformers==0.0.27.post2 \
-          -f https://download.pytorch.org/whl/torch_stable.html &&
-        python main.py --listen 0.0.0.0 --port 8188 ${COMFYUI_EXTRA_ARGS}
+        pip install --no-cache-dir piexif soundfile &&
+        python main.py --listen 0.0.0.0 --port 8188
       "
