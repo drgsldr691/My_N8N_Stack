@@ -24,6 +24,8 @@ services:
       - ./comfyui/user:/workspace/ComfyUI/user
     command: >
       sh -c "
-        pip install --no-cache-dir --upgrade torch==2.4.0 torchvision==0.19.0 &&
-        python /workspace/ComfyUI/main.py --listen 0.0.0.0 --port 8188 ${COMFYUI_EXTRA_ARGS}
+        echo '📦 Installing correct PyTorch stack...' &&
+        pip install --no-cache-dir --upgrade torch==2.8.0 torchvision==0.20.0 torchaudio==2.4.0 xformers &&
+        echo '✅ PyTorch, TorchVision, Torchaudio, and xFormers installed' &&
+        python main.py --listen 0.0.0.0 --port 8188 ${COMFYUI_EXTRA_ARGS}
       "
