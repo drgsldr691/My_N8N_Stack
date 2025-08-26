@@ -56,7 +56,7 @@ Clone the repo:
 
 ```bash
 git clone https://github.com/drgsldr691/My_N8N_Stack.git
-cd local-ai-packaged
+cd My_N8N_Stac
 ```
 
 Copy `.env.example` → `.env` and fill in your secrets:
@@ -236,4 +236,5 @@ This project builds on the work of:
 
 Extended here with **additional services, workflows, monitoring, and improvements**.  
 Licensed under the **Apache 2.0 License**.
+
 
