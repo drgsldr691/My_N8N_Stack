@@ -224,19 +224,6 @@ def check_and_fix_docker_compose_for_searxng():
     except Exception as e:
         print(f"Error checking/modifying docker-compose.yml for SearXNG: {e}")
 
-def fix_comfyui_torchvision():
-    """Fix torchvision bug inside the ComfyUI container by forcing compatible versions."""
-    print("Checking ComfyUI torchvision version...")
-    try:
-        subprocess.run([
-            "docker", "exec", "comfyui-docker",
-            "pip", "install", "--no-cache-dir", "--upgrade",
-            "torch==2.4.0", "torchvision==0.19.0"
-        ], check=True)
-        print("✅ ComfyUI torchvision fix applied (torch 2.4.0 + torchvision 0.19.0).")
-    except subprocess.CalledProcessError as e:
-        print(f"⚠️ Could not fix torchvision automatically: {e}")
-
 # -------------------------------
 # Main
 # -------------------------------
