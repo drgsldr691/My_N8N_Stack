@@ -83,52 +83,21 @@ def clone_comfyui_repo():
         os.chdir("..")
 
 def prepare_comfyui_env():
-    """Copy .env to comfyui/.env (jimlee’s repo expects it in root)."""
+    """Copy .env to comfyui/.env."""
     env_path = os.path.join("comfyui", ".env")
     env_example_path = os.path.join(".env")
     print("Copying .env in root to comfyui/.env...")
     shutil.copyfile(env_example_path, env_path)
 
-def start_local_ai(profile=None, environment=None):
-    """Start the local AI services (using its compose file)."""
-    print("Starting local AI services...")
-    cmd = ["docker", "compose", "-p", "my_n8n_stack"]
-    if profile and profile != "none":
-        cmd.extend(["--profile", profile])
-
-    # Always include base compose
-    cmd.extend(["-f", "docker-compose.yml"])
-
+def start_comfyui():
+    """Start ComfyUI services."""
+    print("Starting ComfyUI services...")
+    cmd = ["docker", "compose", "-p", "my_n8n_stack", "-f", "comfyui/docker-compose.yml"]
     # Always include comfyui public override if present
     if os.path.exists("docker-compose.override.public.comfyui.yml"):
         cmd.extend(["-f", "docker-compose.override.public.comfyui.yml"])
-
-    # Supabase overrides
-    if environment and environment == "private":
-        cmd.extend(["-f", "docker-compose.override.private.yml"])
-    if environment and environment == "public":
-        cmd.extend(["-f", "docker-compose.override.public.yml"])
-        cmd.extend(["-f", "docker-compose.override.public.supabase.yml"])
-
-    # Fallback comfyui override if present
-    if os.path.exists("docker-compose.override.comfyui.yml"):
-        cmd.extend(["-f", "docker-compose.override.comfyui.yml"])
-
     cmd.extend(["up", "-d"])
     run_command(cmd)
-
-def fix_comfyui_torchvision():
-    """Ensure ComfyUI has compatible torchvision installed."""
-    print("Checking ComfyUI torchvision version...")
-    try:
-        subprocess.run([
-            "docker", "exec", "comfyui-docker",
-            "pip", "install", "--no-cache-dir", "--upgrade",
-            "torchvision==0.19.0"
-        ], check=True)
-        print("✅ Torchvision fixed in ComfyUI container.")
-    except Exception as e:
-        print(f"⚠️ Could not fix torchvision automatically: {e}")
 
 # -------------------------------
 # Local AI + SearXNG
