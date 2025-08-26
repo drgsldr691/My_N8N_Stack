@@ -95,17 +95,22 @@ def start_local_ai(profile=None, environment=None):
     cmd = ["docker", "compose", "-p", "my_n8n_stack"]
     if profile and profile != "none":
         cmd.extend(["--profile", profile])
+
+    # Always include base compose
     cmd.extend(["-f", "docker-compose.yml"])
+
+    # Always include comfyui public override if present
+    if os.path.exists("docker-compose.override.public.comfyui.yml"):
+        cmd.extend(["-f", "docker-compose.override.public.comfyui.yml"])
+
+    # Supabase overrides
     if environment and environment == "private":
         cmd.extend(["-f", "docker-compose.override.private.yml"])
     if environment and environment == "public":
         cmd.extend(["-f", "docker-compose.override.public.yml"])
         cmd.extend(["-f", "docker-compose.override.public.supabase.yml"])
-        # Include ComfyUI public override if present
-        if os.path.exists("docker-compose.override.public.comfyui.yml"):
-            cmd.extend(["-f", "docker-compose.override.public.comfyui.yml"])
 
-    # Always include comfyui override if present (fallback non-public)
+    # Fallback comfyui override if present
     if os.path.exists("docker-compose.override.comfyui.yml"):
         cmd.extend(["-f", "docker-compose.override.comfyui.yml"])
 
