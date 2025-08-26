@@ -83,16 +83,21 @@ def clone_comfyui_repo():
         os.chdir("..")
 
 def prepare_comfyui_env():
-    """Copy .env to .env in comfyui/docker."""
-    env_path = os.path.join("comfyui", "docker", ".env")
+    """Copy .env to comfyui/.env (jimlee’s repo expects it in root)."""
+    env_path = os.path.join("comfyui", ".env")
     env_example_path = os.path.join(".env")
-    print("Copying .env in root to .env in comfyui/docker...")
+    print("Copying .env in root to comfyui/.env...")
     shutil.copyfile(env_example_path, env_path)
 
-def start_comfyui():
+def start_comfyui(environment=None):
     """Start ComfyUI services."""
     print("Starting ComfyUI services...")
-    cmd = ["docker", "compose", "-p", "my_n8n_stack", "-f", "comfyui/docker/docker-compose.yml", "up", "-d"]
+    cmd = ["docker", "compose", "-p", "my_n8n_stack", "-f", "comfyui/docker-compose.yml"]
+    if environment and environment == "private":
+        cmd.extend(["-f", "docker-compose.override.private.comfyui.yml"])
+    if environment and environment == "public":
+        cmd.extend(["-f", "docker-compose.override.public.comfyui.yml"])
+    cmd.extend(["up", "-d"])
     run_command(cmd)
 
 def fix_comfyui_torchvision():
