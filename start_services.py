@@ -59,45 +59,6 @@ def start_supabase(environment=None):
     cmd.extend(["up", "-d"])
     run_command(cmd)
 
-# -------------------------------
-# ComfyUI setup
-# -------------------------------
-
-def clone_comfyui_repo():
-    """Clone the ComfyUI docker repo if not already present."""
-    if not os.path.exists("comfyui"):
-        print("Cloning the ComfyUI repository...")
-        run_command([
-            "git", "clone", "--filter=blob:none", "--no-checkout",
-            "https://github.com/jimlee2048/comfyui-docker.git", "comfyui"
-        ])
-        os.chdir("comfyui")
-        run_command(["git", "sparse-checkout", "init", "--cone"])
-        run_command(["git", "sparse-checkout", "set", "docker"])
-        run_command(["git", "checkout", "main"])
-        os.chdir("..")
-    else:
-        print("ComfyUI repository already exists, updating...")
-        os.chdir("comfyui")
-        run_command(["git", "pull"])
-        os.chdir("..")
-
-def prepare_comfyui_env():
-    """Copy .env to comfyui/.env."""
-    env_path = os.path.join("comfyui", ".env")
-    env_example_path = os.path.join(".env")
-    print("Copying .env in root to comfyui/.env...")
-    shutil.copyfile(env_example_path, env_path)
-
-def start_comfyui():
-    """Start ComfyUI services."""
-    print("Starting ComfyUI services...")
-    cmd = ["docker", "compose", "-p", "my_n8n_stack", "-f", "comfyui/docker-compose.yml"]
-    # Always include comfyui public override if present
-    if os.path.exists("docker-compose.override.public.comfyui.yml"):
-        cmd.extend(["-f", "docker-compose.override.public.comfyui.yml"])
-    cmd.extend(["up", "-d"])
-    run_command(cmd)
 
 # -------------------------------
 # Local AI + SearXNG
@@ -242,10 +203,6 @@ def main():
     clone_supabase_repo()
     prepare_supabase_env()
 
-    # Clone + prepare ComfyUI
-    clone_comfyui_repo()
-    prepare_comfyui_env()
-
     # Generate SearXNG secret + check docker-compose for first-run fixes
     generate_searxng_secret_key()
     check_and_fix_docker_compose_for_searxng()
@@ -257,11 +214,6 @@ def main():
     start_supabase(args.environment)
     print("Waiting for Supabase to initialize...")
     time.sleep(10)
-
-    # Start ComfyUI
-    start_comfyui()
-    print("Waiting for ComfyUI to initialize...")
-    time.sleep(5)
 
     # Start local AI services
     start_local_ai(args.profile, args.environment)
