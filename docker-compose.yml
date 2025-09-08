@@ -6,6 +6,7 @@ version: "3.9"
 networks:
   gitea:
     external: false
+  wappnet: {}   # added for apache/php dashboard
 
 # -----------------------------
 # Volumes
@@ -28,11 +29,6 @@ volumes:
   netdatalib:
   netdatacache:
   portainer_data:
-  comfyui-docker_scripts:
-  comfyui-docker_config:
-  comfyui-docker_comfyui-user:
-  comfyui-docker_comfyui-output:
-  comfyui-docker_comfyui-models:
   searxng-cache:
 
 # -----------------------------
@@ -120,7 +116,7 @@ services:
     restart: unless-stopped
 
   netdata:
-    image: netdata/netdata
+    image: netdata/netdata:stable
     container_name: netdata
     restart: unless-stopped
     ports:
@@ -134,7 +130,13 @@ services:
       - netdatalib:/var/lib/netdata
       - netdatacache:/var/cache/netdata
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
+      - ./netdata/conf.d:/etc/netdata/conf.d   # <— add this
+      # Correct Windows host mounts (Docker Desktop uses /host_mnt)
+      - /host_mnt/c:/mnt/c:ro
+      - /host_mnt/d:/mnt/d:ro
+      - /host_mnt/e:/mnt/e:ro
+      - /host_mnt/f:/mnt/f:ro
+      
   watchtower:
     image: containrrr/watchtower:latest
     restart: unless-stopped
@@ -147,6 +149,7 @@ services:
       - --include-stopped
       - --revive-stopped
       - --include-restarting
+
   # --------- App UIs ---------
   flowise:
     image: flowiseai/flowise
@@ -174,6 +177,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - open-webui:/app/backend/data
+
   # --------- n8n ---------
   n8n-import:
     <<: *service-n8n
@@ -202,6 +206,7 @@ services:
     depends_on:
       n8n-import:
         condition: service_completed_successfully
+
   # --------- Vector DB ---------
   qdrant:
     image: qdrant/qdrant
@@ -212,6 +217,7 @@ services:
       - 6334/tcp
     volumes:
       - qdrant_storage:/qdrant/storage
+
   # --------- Graphiti ---------
   graphiti:
     image: zepai/graphiti:latest
@@ -233,6 +239,7 @@ services:
         condition: service_healthy
     networks:
       - default
+
   # --------- Neo4j ---------
   neo4j:
     image: neo4j:5.26-enterprise
@@ -260,6 +267,7 @@ services:
       retries: 10
     networks:
       - default
+
   # --------- Langfuse stack ---------
   langfuse-worker:
     image: langfuse/langfuse-worker:3
@@ -338,6 +346,7 @@ services:
       LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-}
       LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-}
       LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-}
+
   # --------- ClickHouse ---------
   clickhouse:
     image: clickhouse/clickhouse-server
@@ -360,6 +369,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 1s
+
   # --------- MinIO ---------
   minio:
     image: minio/minio
@@ -380,6 +390,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+
   # --------- Postgres ---------
   postgres:
     image: postgres:${POSTGRES_VERSION:-latest}
@@ -397,13 +408,16 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
+
   # --------- Redis (Valkey) ---------
   redis:
     container_name: redis
     image: docker.io/valkey/valkey:8-alpine
     command: valkey-server --save 30 1 --loglevel warning
-    restart: unless-stopped
-    expose:
+    restart: unless-stopped    
+    ports:
+      - "6380:6379"
+    expose:               # <-- still expose inside Docker network
       - 6379/tcp
     volumes:
       - valkey-data:/data
@@ -423,6 +437,7 @@ services:
       interval: 3s
       timeout: 10s
       retries: 10
+
   # --------- SearXNG ---------
   searxng:
     container_name: searxng
@@ -448,6 +463,7 @@ services:
       options:
         max-size: "1m"
         max-file: "1"
+
   # --------- Ollama ---------
   ollama-cpu:
     profiles: ["cpu"]
@@ -477,3 +493,20 @@ services:
     <<: *init-ollama
     depends_on:
       - ollama-gpu
+
+  # --------- Apache/PHP Dashboard ---------
+  apache:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wapp_apache
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./www:/var/www/html
+    networks:
+      - wappnet
+      - default
