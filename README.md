@@ -27,6 +27,7 @@ Unlike cloud-based AI platforms, this stack is **100% private and self-hosted**,
 - ✅ **Minio** – S3-compatible storage  
 - ✅ **Cloudflared** – Secure remote access tunnels  
 - ✅ **Portainer, Netdata, Dozzle, Watchtower** – Monitoring, logs, management  
+- ✅ **WAPP** – Web server that works with n8n out of the box. combined with cloudfare it is accessible from anywhere. 
 
 ---
 
@@ -236,6 +237,7 @@ This project builds on the work of:
 
 Extended here with **additional services, workflows, monitoring, and improvements**.  
 Licensed under the **Apache 2.0 License**.
+
 
 
 
