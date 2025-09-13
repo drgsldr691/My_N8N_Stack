@@ -9,7 +9,9 @@ It’s based on:
 * Further improved here with **additional services, workflows, monitoring, and secure tunnels**
 
 Unlike cloud-based AI platforms, this stack is **100% private and self-hosted**, giving you full control over data, models, and workflows.
-
+Join the community & get the latest workflow bundles:
+Skool: https://www.skool.com/n8n-automation-community-2619
+Repo: https://github.com/drgsldr691/My_N8N_Stack
 ---
 
 ## ✨ Features
@@ -281,3 +283,4 @@ This project builds on the work of:
 
 Extended here with **additional services, workflows, monitoring, and improvements**.
 Licensed under the **Apache 2.0 License**.
+
