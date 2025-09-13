@@ -1,0 +1,85 @@
+scrape_configs:
+  # Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  # Node metrics
+  - job_name: "node"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Postgres
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Netdata
+  - job_name: "netdata"
+    metrics_path: /api/v1/allmetrics
+    params:
+      format: [prometheus]
+    static_configs:
+      - targets: ["netdata:19999"]
+
+  # PHP Services
+  - job_name: "php-services"
+    metrics_path: /metrics.php
+    static_configs:
+      - targets: ["wapp_apache:80"]
+
+  # MinIO
+  - job_name: "minio-node"
+    metrics_path: /minio/v2/metrics/node
+    static_configs:
+      - targets: ["minio:9100"]
+
+  - job_name: "minio-cluster"
+    metrics_path: /minio/v2/metrics/cluster
+    static_configs:
+      - targets: ["minio:9100"]
+
+  # Redis (Valkey) exporter
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+
+  # Exporters you DON'T have running right now (leave commented or add the containers)
+  # - job_name: "ollama"
+  #   static_configs:
+  #     - targets: ["ollama-exporter:9114"]
+
+  # - job_name: "neo4j"
+  #   static_configs:
+  #     - targets: ["neo4j-exporter:2004"]
+
+  # - job_name: "qdrant"
+  #   static_configs:
+  #     - targets: ["qdrant-exporter:9851"]
+
+  # Blackbox HTTP checks (Up/Down)
+  - job_name: "blackbox"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://langfuse-web:3000
+          - http://flowise:3001
+          - http://open-webui:8080
+          - http://n8n:5678
+          - http://n8n:6789
+          - http://minio:9100/minio/health/ready
+          - http://clickhouse:8123/ping
+          - http://grafana:3000/login
+          - http://portainer:9000
+          - http://prometheus:9090/-/ready
+          - http://qdrant:6333/collections          # <-- change to /collections
+          - http://neo4j:7474
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
