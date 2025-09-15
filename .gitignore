@@ -94,3 +94,8 @@ build/
 # ======================
 # Local Docker overrides
 docker-compose.override.yml
+# do not publish n8n exports
+n8n/backup/
+# (optional) other local artifacts
+local-ai-packaged.zip
+.env

@@ -1,0 +1,22 @@
+# postgres_exporter_queries.yml
+pg_service_health:
+  query: |
+    SELECT
+      service_name,
+      CASE
+        WHEN status ILIKE 'Healthy' THEN 1
+        ELSE 0
+      END as healthy
+    FROM service_health_logs
+    WHERE timestamp = (
+      SELECT MAX(timestamp)
+      FROM service_health_logs shl2
+      WHERE shl2.service_name = service_health_logs.service_name
+    );
+  metrics:
+    - service_name:
+        usage: "LABEL"
+        description: "The name of the service"
+    - healthy:
+        usage: "GAUGE"
+        description: "1 if Healthy, 0 if Unhealthy"

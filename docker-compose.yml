@@ -1,4 +1,3 @@
-version: "3.9"
 
 # -----------------------------
 # Networks
@@ -6,6 +5,8 @@ version: "3.9"
 networks:
   gitea:
     external: false
+  wappnet: {}   # apache/php dashboard
+  default: {}
 
 # -----------------------------
 # Volumes
@@ -28,18 +29,19 @@ volumes:
   netdatalib:
   netdatacache:
   portainer_data:
-  comfyui-docker_scripts:
-  comfyui-docker_config:
-  comfyui-docker_comfyui-user:
-  comfyui-docker_comfyui-output:
-  comfyui-docker_comfyui-models:
   searxng-cache:
+  prometheus-data:
+  grafana-data:
 
 # -----------------------------
 # Reusable templates
 # -----------------------------
 x-n8n: &service-n8n
   image: n8nio/n8n:latest
+  labels:
+    stack: "my_n8n_stack"
+    category: "automation"
+    category2: "ai"
   environment:
     - DB_TYPE=postgresdb
     - DB_POSTGRESDB_HOST=db
@@ -51,7 +53,6 @@ x-n8n: &service-n8n
     - N8N_ENCRYPTION_KEY
     - N8N_USER_MANAGEMENT_JWT_SECRET
     - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE}
-    # Dynamic webhook URL: uses https://$N8N_HOSTNAME if set, else local http
     - WEBHOOK_URL=${N8N_HOSTNAME:+https://}${N8N_HOSTNAME:-http://localhost:6789}
     - N8N_PROTOCOL=https
 
@@ -59,6 +60,9 @@ x-ollama: &service-ollama
   image: ollama/ollama:latest
   container_name: ollama
   restart: unless-stopped
+  labels:
+    stack: "my_n8n_stack"
+    category: "ai"
   expose:
     - 11434/tcp
   environment:
@@ -72,6 +76,9 @@ x-ollama: &service-ollama
 x-init-ollama: &init-ollama
   image: ollama/ollama:latest
   container_name: ollama-pull-llama
+  labels:
+    stack: "my_n8n_stack"
+    category: "ai"
   volumes:
     - ollama_storage:/root/.ollama
   entrypoint: /bin/sh
@@ -86,7 +93,8 @@ x-init-ollama: &init-ollama
 # Services
 # -----------------------------
 services:
-  # --------- Utilities / Ops ---------
+
+  # --------- Networking ---------
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
@@ -97,16 +105,41 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARED_TOKEN}
     networks:
       - default
+    labels:
+      stack: "my_n8n_stack"
+      category: "network"
 
+  searxng:
+    container_name: searxng
+    image: docker.io/searxng/searxng:latest
+    restart: unless-stopped
+    expose:
+      - 8080/tcp
+    volumes:
+      - ./searxng:/etc/searxng:rw
+      - searxng-cache:/var/cache/searxng
+    environment:
+      - SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME:-localhost}/
+      - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-4}
+      - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-4}
+    labels:
+      stack: "my_n8n_stack"
+      category: "network"
+
+  # --------- Observability ---------
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
     restart: unless-stopped
     ports:
-      - "9101:9000"                   # Portainer UI at http://localhost:9101
+      - "9101:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
+      category2: "dashboard"
 
   dozzle:
     image: amir20/dozzle:latest
@@ -118,15 +151,19 @@ services:
       - DOZZLE_ENABLE_ACTIONS=true
       - DOZZLE_ENABLE_SHELL=true
     restart: unless-stopped
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
 
   netdata:
-    image: netdata/netdata
+    image: netdata/netdata:stable
     container_name: netdata
     restart: unless-stopped
     ports:
       - "3100:19999"
     cap_add:
       - SYS_PTRACE
+      - NET_ADMIN
     security_opt:
       - apparmor:unconfined
     volumes:
@@ -134,6 +171,83 @@ services:
       - netdatalib:/var/lib/netdata
       - netdatacache:/var/cache/netdata
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./netdata/conf.d:/etc/netdata/conf.d
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3200:3000"
+
+    environment:
+      # Admin creds (consider moving to .env)
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: H3H3h4h4
+
+      # Allow embedding + anonymous viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+
+      # Public URL (Cloudflare)
+      GF_SERVER_DOMAIN: grafana.myn8nonline.us
+      GF_SERVER_ROOT_URL: "https://grafana.myn8nonline.us"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+
+      # Cookies when behind HTTPS/CDN
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_COOKIE_SAMESITE: "none"
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
+      category2: "dashboard"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "9187:9187"
+    volumes:
+      - ./postgres_exporter_queries.yml:/etc/postgres_exporter/queries.yml
+    command:
+      - "--extend.query-path=/etc/postgres_exporter/queries.yml"
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
 
   watchtower:
     image: containrrr/watchtower:latest
@@ -147,34 +261,11 @@ services:
       - --include-stopped
       - --revive-stopped
       - --include-restarting
-  # --------- App UIs ---------
-  flowise:
-    image: flowiseai/flowise
-    restart: unless-stopped
-    container_name: flowise
-    expose:
-      - 3001/tcp
-    environment:
-      - PORT=3001
-      - FLOWISE_USERNAME=${FLOWISE_USERNAME}
-      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - ~/.flowise:/root/.flowise
-    entrypoint: /bin/sh -c "sleep 3; flowise start"
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
 
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:main
-    restart: unless-stopped
-    container_name: open-webui
-    expose:
-      - 8080/tcp
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - open-webui:/app/backend/data
-  # --------- n8n ---------
+  # --------- Automation ---------
   n8n-import:
     <<: *service-n8n
     container_name: n8n-import
@@ -196,23 +287,75 @@ services:
     ports:
       - 6789:6789
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - n8n_storage:/home/node/.n8n
       - ./n8n/backup:/backup
       - ./shared:/data/shared
     depends_on:
       n8n-import:
         condition: service_completed_successfully
-  # --------- Vector DB ---------
-  qdrant:
-    image: qdrant/qdrant
-    container_name: qdrant
+
+  # --------- AI Services ---------
+  flowise:
+    image: flowiseai/flowise
     restart: unless-stopped
+    container_name: flowise
     expose:
-      - 6333/tcp
-      - 6334/tcp
+      - 3001/tcp
+    environment:
+      - PORT=3001
+      - FLOWISE_USERNAME=${FLOWISE_USERNAME}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
-      - qdrant_storage:/qdrant/storage
-  # --------- Graphiti ---------
+      - ~/.flowise:/root/.flowise
+    entrypoint: /bin/sh -c "sleep 3; flowise start"
+    labels:
+      stack: "my_n8n_stack"
+      category: "ai"
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    container_name: open-webui
+    expose:
+      - 8080/tcp
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - open-webui:/app/backend/data
+    labels:
+      stack: "my_n8n_stack"
+      category: "ai"
+
+  ollama-cpu:
+    profiles: ["cpu"]
+    <<: *service-ollama
+
+  ollama-gpu:
+    profiles: ["gpu-nvidia"]
+    <<: *service-ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  ollama-pull-llama-cpu:
+    profiles: ["cpu"]
+    <<: *init-ollama
+    depends_on:
+      - ollama-cpu
+
+  ollama-pull-llama-gpu:
+    profiles: ["gpu-nvidia"]
+    <<: *init-ollama
+    depends_on:
+      - ollama-gpu
+
   graphiti:
     image: zepai/graphiti:latest
     container_name: graphiti
@@ -231,9 +374,65 @@ services:
     depends_on:
       neo4j:
         condition: service_healthy
-    networks:
-      - default
-  # --------- Neo4j ---------
+    labels:
+      stack: "my_n8n_stack"
+      category: "ai"
+      category2: "graph-db"
+
+  # --------- Databases (Infra) ---------
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-latest}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    expose:
+      - 5432/tcp
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+    labels:
+      stack: "my_n8n_stack"
+      category: "infra"
+      category2: "database"
+
+  redis:
+    container_name: redis
+    image: docker.io/valkey/valkey:8-alpine
+    command:
+      - valkey-server
+      - --save
+      - "30"
+      - "1"
+      - --loglevel
+      - warning
+      - --requirepass
+      - ${REDIS_PASSWORD:-LOCALONLYREDIS}   # <-- add this
+    environment:
+      - REDIS_PASSWORD=LOCALONLYREDIS       # or put in your .env
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    expose:
+      - 6379/tcp
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      # needs auth once a password is required
+      test: ["CMD", "valkey-cli", "-a", "${REDIS_PASSWORD:-LOCALONLYREDIS}", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+    labels:
+      stack: "my_n8n_stack"
+      category: "infra"
+      category2: "database"
+
   neo4j:
     image: neo4j:5.26-enterprise
     container_name: neo4j
@@ -254,13 +453,83 @@ services:
       - ./neo4j/conf:/var/lib/neo4j/conf
       - ./neo4j/plugins:/plugins
     healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1;"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD} 'RETURN 1;' || exit 1"]
+      interval: 15s
+      timeout: 10s
       retries: 10
-    networks:
-      - default
-  # --------- Langfuse stack ---------
+      start_period: 40s
+    labels:
+      stack: "my_n8n_stack"
+      category: "infra"
+      category2: "graph-db"
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    restart: unless-stopped
+    expose:
+      - 6333/tcp
+      - 6334/tcp
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    labels:
+      stack: "my_n8n_stack"
+      category: "infra"
+      category2: "vector-db"
+
+
+  clickhouse:
+      image: clickhouse/clickhouse-server
+      restart: always
+      user: "101:101"
+      expose:
+        - "8123"
+        - "9000"
+        - "9009"
+      environment:
+        CLICKHOUSE_DB: default
+        CLICKHOUSE_USER: clickhouse
+        CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      volumes:   # <-- now at the correct level
+        - langfuse_clickhouse_data:/var/lib/clickhouse
+        - langfuse_clickhouse_logs:/var/log/clickhouse-server
+      healthcheck:
+        test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' --user=$${CLICKHOUSE_USER} --password=$${CLICKHOUSE_PASSWORD} --host=localhost --port=9000 || exit 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 20s
+      labels:
+        stack: "my_n8n_stack"
+        category: "infra"
+        category2: "database"
+
+  minio:
+    image: minio/minio
+    restart: always
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9100" --console-address ":9102" /data'
+    expose:
+      - 9100/tcp
+      - 9102/tcp
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9100/minio/health/ready"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    labels:
+      stack: "my_n8n_stack"
+      category: "infra"
+      category2: "storage"
+
+  # --------- Langfuse ---------
+
   langfuse-worker:
     image: langfuse/langfuse-worker:3
     restart: always
@@ -275,7 +544,7 @@ services:
         condition: service_healthy
     expose:
       - 3030/tcp
-    environment: &langfuse-worker-env
+    environment: &langfuse-worker-env   # 🔑 define anchor here
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
       SALT: ${LANGFUSE_SALT}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
@@ -318,6 +587,10 @@ services:
       REDIS_TLS_CA: ${REDIS_TLS_CA:-/certs/ca.crt}
       REDIS_TLS_CERT: ${REDIS_TLS_CERT:-/certs/redis.crt}
       REDIS_TLS_KEY: ${REDIS_TLS_KEY:-/certs/redis.key}
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
+      category2: "ai"
 
   langfuse-web:
     image: langfuse/langfuse:3
@@ -326,7 +599,7 @@ services:
     expose:
       - 3000/tcp
     environment:
-      <<: *langfuse-worker-env
+      <<: *langfuse-worker-env   # 🔑 reuse envs from worker
       NEXTAUTH_URL: http://localhost:3002
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
@@ -338,142 +611,55 @@ services:
       LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-}
       LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-}
       LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-}
-  # --------- ClickHouse ---------
-  clickhouse:
-    image: clickhouse/clickhouse-server
-    restart: always
-    user: "101:101"
-    expose:
-      - 8123/tcp
-      - 9000/tcp
-      - 9009/tcp
-    environment:
-      CLICKHOUSE_DB: default
-      CLICKHOUSE_USER: clickhouse
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-    volumes:
-      - langfuse_clickhouse_data:/var/lib/clickhouse
-      - langfuse_clickhouse_logs:/var/log/clickhouse-server
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 1s
-  # --------- MinIO ---------
-  minio:
-    image: minio/minio
-    restart: always
-    entrypoint: sh
-    command: -c 'mkdir -p /data/langfuse && minio server --address ":9100" --console-address ":9102" /data'
-    expose:
-      - 9100/tcp   # API
-      - 9102/tcp   # Console
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    volumes:
-      - langfuse_minio_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9100/minio/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
-  # --------- Postgres ---------
-  postgres:
-    image: postgres:${POSTGRES_VERSION:-latest}
+    labels:
+      stack: "my_n8n_stack"
+      category: "observability"
+      category2: "dashboard"
+
+  # --------- Apache/PHP Dashboard ---------
+  apache:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wapp_apache
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 3s
-      timeout: 3s
-      retries: 10
-    expose:
-      - 5432/tcp
+    ports:
+      - "8085:80"
     environment:
-      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: postgres
     volumes:
-      - langfuse_postgres_data:/var/lib/postgresql/data
-  # --------- Redis (Valkey) ---------
-  redis:
-    container_name: redis
-    image: docker.io/valkey/valkey:8-alpine
-    command: valkey-server --save 30 1 --loglevel warning
+      - ./www:/var/www/html
+    networks:
+      - wappnet
+      - default
+    labels:
+      stack: "my_n8n_stack"
+      category: "dashboard"
+      category2: "infra"
+
+  # =======================
+  # Exporters for Monitoring
+  # =======================
+ 
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
     restart: unless-stopped
-    expose:
-      - 6379/tcp
-    volumes:
-      - valkey-data:/data
-    cap_drop:
-      - ALL
-    cap_add:
-      - SETGID
-      - SETUID
-      - DAC_OVERRIDE
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 3s
-      timeout: 10s
-      retries: 10
-  # --------- SearXNG ---------
-  searxng:
-    container_name: searxng
-    image: docker.io/searxng/searxng:latest
+    command:
+      - --redis.addr=redis:6379
+      - --redis.password=${REDIS_PASSWORD:-LOCALONLYREDIS}
+    ports:
+      - "9121:9121"
+    networks:
+      - default
+
+  # Blackbox Exporter (HTTP/HTTPS checks for apps)
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
     restart: unless-stopped
-    expose:
-      - 8080/tcp
-    volumes:
-      - ./searxng:/etc/searxng:rw
-      - searxng-cache:/var/cache/searxng
-    environment:
-      - SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME:-localhost}/
-      - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-4}
-      - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-4}
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
-  # --------- Ollama ---------
-  ollama-cpu:
-    profiles: ["cpu"]
-    <<: *service-ollama
-    image: ollama/ollama:latest
-
-  ollama-gpu:
-    profiles: ["gpu-nvidia"]
-    <<: *service-ollama
-    image: ollama/ollama:latest
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  ollama-pull-llama-cpu:
-    profiles: ["cpu"]
-    <<: *init-ollama
-    depends_on:
-      - ollama-cpu
-
-  ollama-pull-llama-gpu:
-    profiles: ["gpu-nvidia"]
-    <<: *init-ollama
-    depends_on:
-      - ollama-gpu
+    ports:
+      - "9115:9115"
+    networks:
+      - default

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My_N8N_Stack — Self-Hosted AI + n8n</title>
+  <meta name="description" content="Self-hosted AI + n8n automation stack. Private. Observable. Fast."/>
+  <style>
+    :root{
+      --bg:#0b0f17; --card:#111827; --muted:#94a3b8; --border:#1f2937; --accent:#60a5fa;
+      --text:#e6edf3; --chip:#0ea5e9; --chip2:#a78bfa; --chip3:#22c55e;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background: radial-gradient(1200px circle at 20% -10%, #0b1220 0%, var(--bg) 50%),
+                 radial-gradient(1200px circle at 100% 0%, #0e1322 0%, transparent 50%) var(--bg);
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      line-height:1.45;
+    }
+    .wrap{max-width:1080px;margin:40px auto;padding:0 20px}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .brand{display:flex;gap:14px;align-items:center}
+    .logo{
+      width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+      background:linear-gradient(135deg,#2563eb, #22c55e); font-weight:800; letter-spacing:.5px
+    }
+    .title{margin:0;font-weight:800;letter-spacing:.2px}
+    .tagline{color:var(--muted);margin-top:6px}
+    .cta{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);
+      padding:10px 14px;border-radius:12px;text-decoration:none;color:var(--text);background:rgba(17,24,39,.6);
+      transition:transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .btn:hover{transform:translateY(-1px);border-color:#334155}
+    .btn--primary{background:linear-gradient(135deg,#1d4ed8,#0ea5e9);border-color:transparent}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .chip{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0f172a;color:var(--muted)}
+    .chip--blue{background:rgba(14,165,233,.12);color:#7dd3fc;border-color:rgba(125,211,252,.2)}
+    .chip--purple{background:rgba(167,139,250,.12);color:#c4b5fd;border-color:rgba(196,181,253,.2)}
+    .chip--green{background:rgba(34,197,94,.12);color:#86efac;border-color:rgba(134,239,172,.2)}
+
+    h2{margin:36px 0 10px}
+    .muted{color:var(--muted)}
+    .grid{
+      display:grid; gap:14px; margin:18px 0 40px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    a.card{
+      display:block; background:rgba(17,24,39,.72); border:1px solid var(--border);
+      border-radius:16px; padding:16px; text-decoration:none; color:var(--text);
+      transition:transform .15s ease, border-color .15s ease, background .15s ease;
+      min-height:96px;
+    }
+    a.card:hover{transform:translateY(-2px); border-color:#334155; background:rgba(17,24,39,.9)}
+    .card h3{margin:0 0 6px; font-size:16px}
+    .card p{margin:0; font-size:13px; color:var(--muted)}
+    footer{margin:40px 0 24px; color:var(--muted); font-size:13px}
+    .small{font-size:12px}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#0f172a; padding:2px 6px; border-radius:6px; border:1px solid var(--border)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">AI</div>
+        <div>
+          <h1 class="title">My_N8N_Stack</h1>
+          <div class="tagline">Self-hosted AI + n8n automations — private, observable, fast.</div>
+          <div class="chips">
+            <span class="chip chip--blue">Docker</span>
+            <span class="chip chip--purple">Ollama + Open WebUI</span>
+            <span class="chip chip--green">Supabase • Qdrant • Neo4j</span>
+          </div>
+        </div>
+      </div>
+      <nav class="cta">
+        <a class="btn btn--primary" href="https://github.com/drgsldr691/My_N8N_Stack" target="_blank" rel="noopener">GitHub Repo</a>
+        <a class="btn" href="https://www.skool.com/n8n-automation-community-2619" target="_blank" rel="noopener">Skool Community</a>
+      </nav>
+    </header>
+
+    <h2>Service Shortcuts</h2>
+    <p class="muted small">
+      Edit these links to match your hostnames (Cloudflare Tunnels) or local ports. Examples shown use subdomains.
+      For local dev, change to <span class="code">http://localhost:PORT</span>.
+    </p>
+
+    <div class="grid">
+      <a class="card" href="https://n8n.yourdomain.com" target="_blank" rel="noopener">
+        <h3>n8n</h3>
+        <p>Low-code automation (internal port 6789)</p>
+      </a>
+      <a class="card" href="https://webui.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Open WebUI</h3>
+        <p>Chat with local models; connect to n8n agents</p>
+      </a>
+      <a class="card" href="https://grafana.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Grafana</h3>
+        <p>Dashboards &amp; observability</p>
+      </a>
+      <a class="card" href="https://prometheus.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Prometheus</h3>
+        <p>Metrics &amp; targets</p>
+      </a>
+      <a class="card" href="https://supabase.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Supabase</h3>
+        <p>DB, Auth, Storage (via Kong)</p>
+      </a>
+      <a class="card" href="https://graphiti.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Graphiti</h3>
+        <p>Neo4j graph visualization</p>
+      </a>
+      <a class="card" href="https://neo4j.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Neo4j Browser</h3>
+        <p>Cypher console (optional exposure)</p>
+      </a>
+      <a class="card" href="https://portainer.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Portainer</h3>
+        <p>Container management</p>
+      </a>
+      <a class="card" href="https://netdata.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Netdata</h3>
+        <p>Host health (19999)</p>
+      </a>
+      <a class="card" href="https://dozzle.yourdomain.com" target="_blank" rel="noopener">
+        <h3>Dozzle</h3>
+        <p>Real-time container logs</p>
+      </a>
+      <a class="card" href="https://searx.yourdomain.com" target="_blank" rel="noopener">
+        <h3>SearXNG</h3>
+        <p>Private meta-search</p>
+      </a>
+      <a class="card" href="https://minio.yourdomain.com" target="_blank" rel="noopener">
+        <h3>MinIO Console</h3>
+        <p>S3-compatible object storage</p>
+      </a>
+    </div>
+
+    <h2>Getting Started</h2>
+    <ol>
+      <li>Point Cloudflared hostnames to the internal services (see <span class="code">cloudflared/config.yml</span> or Dashboard).</li>
+      <li>Update the links above to match your domain (e.g., <span class="code">n8n.yourdomain.com</span>).</li>
+      <li>Lock down admin UIs with Cloudflare Access (SSO + MFA).</li>
+    </ol>
+
+    <footer>
+      <div>© <span id="year"></span> My_N8N_Stack — Self-Hosted AI + n8n</div>
+      <div class="muted small">Served by WAPP (Apache) inside Docker · Replace “yourdomain.com” with your real hostnames.</div>
+    </footer>
+  </div>
+
+  <script>
+    // Tiny enhancement: auto-fill current year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
