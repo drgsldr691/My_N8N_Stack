@@ -1,68 +1,241 @@
- my\_n8n\_stack
-=================
+# 🚀 Self-Hosted AI Package (n8n + AI Docker Stack)
 
-Welcome to the my\_n8n\_stack repository! This project is designed to showcase how to use the N8N platform for building serverless workflows. The N8N platform allows you to create, deploy and manage workflows that integrate with a wide range of applications and services.
+This is my self-hosted AI + automation stack, built entirely with **Docker Compose**.
 
-Project Requirements
---------------------
+It’s based on:
 
-To run this project, you will need to have the following installed:
+- The original [n8n Local AI Starter Kit](https://github.com/n8n-io)
+- Extended by [Coleam’s Self-Hosted AI Package](https://github.com/coleam00/local-ai-packaged)
+- Further improved here with **additional services, workflows, monitoring, and secure tunnels**
 
-* Node.js
-* npm (Node Package Manager)
+Unlike cloud-based AI platforms, this stack is **100% private and self-hosted**, giving you full control over data, models, and workflows.
 
-Dependencies
-------------
+---
 
-This project has several dependencies which can be installed using npm:
+## ✨ Features
+
+- ✅ **n8n** – Low-code automation with 400+ integrations + AI nodes  
+- ✅ **Supabase** – Database, auth, storage, APIs, vector support  
+- ✅ **Ollama** – Run local LLMs (GPU/CPU)  
+- ✅ **Open WebUI** – Chat with local models + n8n agents  
+- ✅ **Flowise** – Visual AI pipeline builder  
+- ✅ **Qdrant** – Vector DB optimized for RAG  
+- ✅ **Neo4j + Graphiti** – Knowledge graph & visualization  
+- ✅ **Langfuse** – LLM observability + tracing  
+- ✅ **SearXNG** – Private metasearch engine  
+- ✅ **ClickHouse** – Fast analytics  
+- ✅ **Minio** – S3-compatible storage  
+- ✅ **Cloudflared** – Secure remote access tunnels  
+- ✅ **Portainer, Netdata, Dozzle, Watchtower** – Monitoring, logs, management  
+
+---
+
+## 📦 What’s Included
+
+- `docker-compose.yml` + overrides (private/public profiles)  
+- `start_services.py` → one command to start/stop all services  
+- Profiles: `cpu`, `gpu-nvidia`, `gpu-amd`, `none` (external Ollama)  
+- **Workflows**:  
+  - Backup Tool → pushes workflows/credentials to GitHub  
+  - Error Handler → AI-assisted error reporting  
+  - Agentic RAG → Supabase + Ollama integration  
+
+---
+
+## 🔧 Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/)  
+- Python 3.10+  
+- Git  
+
+---
+
+## ⚡ Quick Start
+
+Clone the repo:
 
 ```bash
-npm install
+git clone https://github.com/drgsldr691/My_N8N_Stack.git
+cd My_N8N_Stack
 ```
 
-The main dependency is the N8N platform itself, which you can find at <https://n8n.io/>. You will also need to have a Node.js environment set up.
+Copy `.env.example` → `.env` and fill in your secrets:
 
-Getting Started
----------------
-
-To get started with this project, follow these steps:
-
-1. Clone the repository to your local machine using the following command:
 ```bash
-git clone https://github.com/username/my_n8n_stack.git
+cp .env.example .env
 ```
-2. Install the dependencies by running the following command in the project directory:
+
+Start the stack (choose one):
+
 ```bash
-npm install
+# ▶️ Nvidia GPU
+python start_services.py --profile gpu-nvidia
 ```
-3. Set up a .env file with your N8N API credentials. This can be found in the `.env.example` file.
-4. Run the application using the following command:
-```sql
-npm start
+
+```bash
+# ▶️ AMD GPU (Linux only)
+python start_services.py --profile gpu-amd
 ```
-How to run the application
--------------------------
 
-Once you have set up your environment, you can run the application by executing the `start` command in the project directory. This will start the N8N server and open the web interface in your default browser.
-
-Relevant Code Examples
----------------------
-
-Here is an example of a simple workflow that uses the N8N platform to send an email:
-```python
-{
-  "type": "node",
-  "name": "Send Email",
-  "topic": "email_sending",
-  "description": "Sends an email using the N8N platform.",
-  "properties": {
-    "to": "recipient@example.com",
-    "subject": "Test Email",
-    "body": "This is a test email from the my_n8n_stack project."
-  }
-}
+```bash
+# ▶️ CPU only
+python start_services.py --profile cpu
 ```
-Conclusion
-----------
 
-In this README, we have covered the basics of using the my\_n8n\_stack repository. We have discussed the requirements for running the project, as well as how to set up and run the application. By following these steps, you should be able to get started with building your own serverless workflows using the N8N platform. If you have any questions or need further assistance, please feel free to reach out to us at [contact@my_n8n_stack.com](mailto:contact@my_n8n_stack.com).
+```bash
+# ▶️ External Ollama (Mac / Apple Silicon)
+python start_services.py --profile none
+```
+
+---
+
+## 🔑 Environment Setup
+
+- Copy `.env.example` to `.env`  
+- Replace placeholders (`changeme`, `your-token-here`) with real values  
+- `.gitignore` prevents committing `.env`  
+- See `.env.example` for required vars  
+
+---
+
+## 🌐 Service Access
+
+| Service        | URL                       | Notes                          |
+|----------------|---------------------------|--------------------------------|
+| n8n            | http://localhost:5678     | Workflow automation            |
+| Open WebUI     | http://localhost:3000     | Chat with local models         |
+| Supabase       | http://localhost:54323    | Database UI (Studio)           |
+| Langfuse       | http://localhost:3030     | LLM observability              |
+| Portainer      | http://localhost:9101     | Container management           |
+| Netdata        | http://localhost:3100     | Monitoring                     |
+| Graphiti       | http://localhost:8090     | Graph visualization            |
+| Neo4j          | http://localhost:7474     | Neo4j browser                  |
+| Qdrant         | http://localhost:6333     | Vector DB API                  |
+| SearXNG        | http://localhost:8080     | Meta search engine             |
+
+---
+
+## 🌐 Cloudflared Setup (Dashboard)
+
+This stack uses Cloudflare Tunnels for **secure external access**.
+
+1. Log in → [Cloudflare Dashboard](https://dash.cloudflare.com)  
+2. Select your domain  
+3. Go to **Zero Trust → Access → Tunnels**  
+4. **Create a Tunnel** → choose **Docker** connector → copy token  
+5. Add **public hostnames**:
+
+| Service     | Subdomain               | URL inside stack       |
+|-------------|--------------------------|------------------------|
+| n8n         | n8n.yourdomain.com      | http://n8n:5678        |
+| Supabase    | supabase.yourdomain.com | http://supabase-kong:8000 |
+| Open WebUI  | webui.yourdomain.com    | http://open-webui:3000 |
+| Langfuse    | langfuse.yourdomain.com | http://langfuse-web:3030 |
+| Graphiti    | graphiti.yourdomain.com | http://graphiti:7474   |
+
+6. Update `.env`:
+
+```ini
+CLOUDFLARED_TOKEN=your-token-here
+
+N8N_HOSTNAME=n8n.yourdomain.com
+SUPABASE_HOSTNAME=supabase.yourdomain.com
+WEBUI_HOSTNAME=webui.yourdomain.com
+LANGFUSE_HOSTNAME=langfuse.yourdomain.com
+GRAPHITI_HOSTNAME=graphiti.yourdomain.com
+```
+
+7. Start the stack:
+
+```bash
+python start_services.py --profile gpu-nvidia
+```
+
+---
+
+## 🔄 Upgrading
+
+```bash
+# Stop everything
+docker compose -p localai -f docker-compose.yml --profile gpu-nvidia down
+
+# Pull latest images
+docker compose -p localai -f docker-compose.yml --profile gpu-nvidia pull
+
+# Restart
+python start_services.py --profile gpu-nvidia
+```
+
+---
+
+## 🛠️ Troubleshooting
+
+### 1. Line Ending Issues (CRLF → LF)
+On **Windows**, `.env` may revert to CRLF and break Supabase Pooler.  
+
+Fix in VS Code:
+- Open `.env`  
+- Bottom-right → Change `CRLF` → `LF`  
+- Save file  
+
+Verify with Git:
+```bash
+git ls-files --eol | findstr ".env"
+```
+Should show `lf`, not `crlf`.
+
+---
+
+### 2. Supabase
+- **Pooler keeps restarting** → ensure `.env` has `POOLER_DB_POOL_SIZE=5`  
+- **Analytics container fails** → delete `supabase/docker/volumes/db/data` and restart  
+- **Password issues** → avoid `@` and special chars in `POSTGRES_PASSWORD`  
+
+---
+
+### 3. SearXNG
+If it keeps restarting:
+```bash
+chmod 755 searxng
+```
+
+---
+
+### 4. Ollama GPU Issues
+- **Windows** → enable WSL2 backend in Docker Desktop  
+- **Linux** → follow Ollama GPU Docker setup  
+
+---
+
+### 5. Containers Not Found
+Sometimes Supabase pulls badly. Delete the `supabase/` folder and rerun:
+
+```bash
+python start_services.py --profile gpu-nvidia
+```
+
+---
+
+## 📊 Differences from Cole’s Version
+
+- 🛠️ Extra monitoring: **Portainer, Netdata, Dozzle, Watchtower**  
+- 🔐 Backup & Error Handling Workflows  
+- 🌐 Cloudflared Tunnels for secure access  
+- 📊 Graphiti + Neo4j integration  
+- 📂 Synced `.env.example` with safe placeholders  
+- ⚡ More opinionated defaults for local-first setup  
+
+---
+
+## 📜 License & Attribution
+
+This project builds on the work of:
+
+- [n8n Local AI Starter Kit](https://github.com/n8n-io)  
+- [Self-Hosted AI Package by Coleam](https://github.com/coleam00/local-ai-packaged)  
+
+Extended here with **additional services, workflows, monitoring, and improvements**.  
+Licensed under the **Apache 2.0 License**.
+
+
+
