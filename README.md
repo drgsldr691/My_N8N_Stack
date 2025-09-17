@@ -136,13 +136,191 @@ This stack uses Cloudflare Tunnels for **secure external access**.
 6. Update `.env`:
 
 ```ini
+##############################################
+# Core / Networking
+##############################################
+# Cloudflare Tunnel (Zero Trust → Access → Tunnels → Docker token)
 CLOUDFLARED_TOKEN=your-token-here
 
+# Public hostnames you’ll create in Cloudflare → map to internal services
 N8N_HOSTNAME=n8n.yourdomain.com
-SUPABASE_HOSTNAME=supabase.yourdomain.com
 WEBUI_HOSTNAME=webui.yourdomain.com
 LANGFUSE_HOSTNAME=langfuse.yourdomain.com
 GRAPHITI_HOSTNAME=graphiti.yourdomain.com
+GRAFANA_HOSTNAME=grafana.yourdomain.com
+SEARXNG_HOSTNAME=search.yourdomain.com
+# (Optional) Supabase if you expose it
+SUPABASE_HOSTNAME=supabase.yourdomain.com
+
+# Canonical external URLs (used by apps behind Cloudflare)
+WEBHOOK_URL=https://n8n.yourdomain.com        # n8n webhook base
+LANGFUSE_PUBLIC_URL=https://langfuse.yourdomain.com
+MINIO_EXTERNAL_ENDPOINT=https://minio.yourdomain.com
+GRAFANA_URL=https://grafana.yourdomain.com
+
+##############################################
+# n8n
+##############################################
+# IMPORTANT: generate strong secrets (32+ chars)
+N8N_ENCRYPTION_KEY=changeme_super_secret_key
+N8N_USER_MANAGEMENT_JWT_SECRET=changeme_jwt_secret
+N8N_SECURE_COOKIE=false          # true if you terminate HTTPS at the app (not just CF)
+N8N_PROTOCOL=https               # http for purely local dev
+
+##############################################
+# Postgres (shared by n8n/Langfuse/exporters)
+##############################################
+POSTGRES_VERSION=15
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_DB=postgres
+POSTGRES_PASSWORD=changeme_pg
+
+##############################################
+# Redis / Valkey
+##############################################
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=LOCALONLYREDIS
+# Langfuse expects this name:
+REDIS_AUTH=${REDIS_PASSWORD}
+
+##############################################
+# Neo4j (Graph DB)
+##############################################
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=changeme_neo4j
+
+##############################################
+# Graphiti (talks to Neo4j + LLMs)
+##############################################
+# For local LLMs via Ollama’s OpenAI-compatible endpoint
+OPENAI_API_KEY=ollama                # placeholder; not used by Ollama but some libs require it
+OPENAI_BASE_URL=http://ollama:11434/v1
+OPENAI_MODEL=qwen2.5:14b-instruct
+OPENAI_SMALL_MODEL=llama3.2:3b
+OPENAI_EMBEDDING_MODEL=nomic-embed-text
+
+##############################################
+# Ollama (models pulled by init containers)
+##############################################
+# No secrets typically needed; models are configured in compose
+# Example: qwen2.5:7b-instruct-q4_K_M, nomic-embed-text
+
+##############################################
+# Qdrant (Vector DB)
+##############################################
+# Using defaults in compose; add auth vars here if you enable them
+
+##############################################
+# ClickHouse (Langfuse analytics store)
+##############################################
+CLICKHOUSE_USER=clickhouse
+CLICKHOUSE_PASSWORD=changeme_clickhouse
+CLICKHOUSE_URL=http://clickhouse:8123
+CLICKHOUSE_MIGRATION_URL=clickhouse://clickhouse:9000
+CLICKHOUSE_CLUSTER_ENABLED=false
+
+##############################################
+# MinIO (S3-compatible storage for Langfuse events/media)
+##############################################
+MINIO_ROOT_USER=minio
+MINIO_ROOT_PASSWORD=changeme_minio
+LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
+LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
+LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID=minio
+LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://minio:9100
+LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
+LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
+
+LANGFUSE_S3_MEDIA_UPLOAD_BUCKET=langfuse
+LANGFUSE_S3_MEDIA_UPLOAD_REGION=auto
+LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID=minio
+LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT=http://minio:9100
+LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE=true
+LANGFUSE_S3_MEDIA_UPLOAD_PREFIX=media/
+
+# Optional batch export
+LANGFUSE_S3_BATCH_EXPORT_ENABLED=false
+LANGFUSE_S3_BATCH_EXPORT_BUCKET=langfuse
+LANGFUSE_S3_BATCH_EXPORT_PREFIX=exports/
+LANGFUSE_S3_BATCH_EXPORT_REGION=auto
+LANGFUSE_S3_BATCH_EXPORT_ENDPOINT=http://minio:9100
+LANGFUSE_S3_BATCH_EXPORT_EXTERNAL_ENDPOINT=${MINIO_EXTERNAL_ENDPOINT}
+LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID=minio
+LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+LANGFUSE_S3_BATCH_EXPORT_FORCE_PATH_STYLE=true
+
+##############################################
+# Langfuse (app + worker)
+##############################################
+LANGFUSE_SALT=changeme_langfuse_salt
+ENCRYPTION_KEY=changeme_langfuse_enc_key
+TELEMETRY_ENABLED=true
+NEXTAUTH_SECRET=changeme_nextauth
+
+# (Optional) bootstrap values for first-run automation
+LANGFUSE_INIT_ORG_ID=
+LANGFUSE_INIT_ORG_NAME=
+LANGFUSE_INIT_PROJECT_ID=
+LANGFUSE_INIT_PROJECT_NAME=
+LANGFUSE_INIT_PROJECT_PUBLIC_KEY=
+LANGFUSE_INIT_PROJECT_SECRET_KEY=
+LANGFUSE_INIT_USER_EMAIL=
+LANGFUSE_INIT_USER_NAME=
+LANGFUSE_INIT_USER_PASSWORD=
+
+# Performance tuning (leave blank to use defaults)
+LANGFUSE_INGESTION_QUEUE_DELAY_MS=
+LANGFUSE_INGESTION_CLICKHOUSE_WRITE_INTERVAL_MS=
+
+##############################################
+# Grafana
+##############################################
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=changeme_grafana
+GF_SECURITY_ALLOW_EMBEDDING=true
+GF_AUTH_ANONYMOUS_ENABLED=true
+GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+GF_SERVER_DOMAIN=${GRAFANA_HOSTNAME}
+GF_SERVER_ROOT_URL=https://${GRAFANA_HOSTNAME}
+GF_SERVER_SERVE_FROM_SUB_PATH=false
+GF_SECURITY_COOKIE_SECURE=true
+GF_SECURITY_COOKIE_SAMESITE=none
+
+##############################################
+# SearXNG
+##############################################
+SEARXNG_UWSGI_WORKERS=4
+SEARXNG_UWSGI_THREADS=4
+SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME}/
+
+##############################################
+# Flowise
+##############################################
+FLOWISE_USERNAME=admin
+FLOWISE_PASSWORD=changeme_flowise
+
+##############################################
+# Open WebUI
+##############################################
+# (Typically no secrets required for local use)
+
+##############################################
+# Apache/PHP dashboard (WAPP)
+##############################################
+# Example: used by www/grafana_proxy.php (server-side env)
+GRAFANA_SA_TOKEN=changeme_service_account_token
+
+##############################################
+# Prometheus / Exporters
+##############################################
+# Postgres exporter composes a DSN from these:
+# DATA_SOURCE_NAME="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable"
+
 ```
 
 7. Start the stack:
